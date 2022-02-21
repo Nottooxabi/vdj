@@ -1,4 +1,4 @@
-import util
+from src import util
 from Bio import SeqIO
 
 
@@ -53,7 +53,6 @@ def read_ab1_file(file_name: str, handle_n: bool = False, naming: str = None,
     return {'seq_id': name, 'sequence': primary_basecall, 'chain': chain}
 
 
-# TODO: Find more test files
 def call_n_ab1(ab1_data: dict):
     """
     Forces a nucleotide call for 'N' labeled nucleotides in ab1 sequence data.

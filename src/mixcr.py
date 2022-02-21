@@ -1,31 +1,5 @@
 import re
-
-from Bio import SeqIO
-from src import util
 import pandas as pd
-
-
-class SequenceReader:
-
-    def __init__(self):
-        self.processed_files = {}
-
-
-
-
-
-# TODO remake function
-def read_fasta_file(file_name, chain: str):
-    """
-
-    Args:
-        file_name: str, path to fasta file
-        chain: str, can be A, B, D, G
-
-    Returns: list, [{'name': file_name, 'seq': AT, chain: 'A'}, ... ]
-    """
-
-    return
 
 
 class MixcrData:
