@@ -29,39 +29,19 @@ class ReferenceManager:
             self.references_df = pd.DataFrame.from_records(
                 ref.create_genes(ref.parse_fasta(reference)))
 
-            # This attribute stores a splice of the reference genome which will be referred to for alignments
+            # This attribute stores a splice of the reference genome
+            # which will be referred to for alignments
             self.current = None
         else:
             raise FileExistsError("Inputted file does not exist")
 
-    def get_reference_sequences(self, chain: list = None, segment: list = ['V'], func: list = ['F'], cdr: list = None):
-        """
-        Get all sequences from refererence based on conditions
-        Args:
-            chain: tcr chain
-            segment:
-            func:
-            cdr:
-
-        Returns:
-
-        """
-
-        if chain is None:
-            data = self.current[(self.current['segment'] == segment)
-                                & (self.current['functional'] == func)]
-
-            return pd.Series(data['seq'].values, index=data['allele']).to_dict()
-
-        data = self.current[(self.current['segment'] == segment)
-                            & (self.current['functional'] == func)
-                            & (self.current['chain'] == chain)]
-        if cdr is None:
-            return pd.Series(data['seq'].values, index=data['allele']).to_dict()
-        return pd.Series(data[cdr].values, index=data['allele']).to_dict()
-
-    def set_species(self, species, isTCR=True, variety=None, segment=None, chain=None,
-                    allele='\*01'):
+    def set_current(self,
+                    species: str,
+                    isTCR: bool = True,
+                    variety: list = None,
+                    segment: list = None,
+                    chain: list = None,
+                    allele: list =['01']):
         """
         Sets the current dataframe which will be used for sequence alignments, requires both a valid
         species entry to work
@@ -69,30 +49,30 @@ class ReferenceManager:
 
         self.current = self.references_df[(self.references_df['species'] == species)]
 
-        self.check_current('species')
+        self._check_current('species')
 
         if isTCR:
             self.current = self.current[self.current['allele'].str.contains('TR')]
         else:
             self.current = self.current[self.current['allele'].str.contains('IG')]
 
-        self.check_current('allele')
+        self._check_current('allele')
 
         if variety is not None:
-            self.current = self.current[self.current['variety'] == variety]
-            self.check_current('variety')
+            self.current = self.current[self.current['variety'].isin(variety)]
+            self._check_current('variety')
 
         if segment is not None:
-            self.current = self.current[self.current['segment'] == segment]
-            self.check_current('segment')
+            self.current = self.current[self.current['segment'].isin(segment)]
+            self._check_current('segment')
 
         if chain is not None:
-            self.current = self.current[self.current['chain'] == chain]
-            self.check_current('chain')
+            self.current = self.current[self.current['chain'].isin(chain)]
+            self._check_current('chain')
 
         if allele is not None:
-            self.current[self.current['allele'].str.contains(allele)]
-            self.check_current('allele')
+            self.current[self.current['sub'].isin(allele)]
+            self._check_current('sub')
 
         self.current['gene'] = self.current['allele'].str.split('*').str[0]
         # clean DV
@@ -104,10 +84,16 @@ class ReferenceManager:
         self.current['gene'] = self.current['gene'].str.split('/').str[0]
         self.current['gene'] = self.current['gene'].str.replace('D', '', 1).str.replace('N', '', 1)
 
-        # self.current['temp'] = self.current['allele'].str.split('*').str[0].str.split['/']
-        # self.current['type'] = self.current['allele'].str.split('*').str[1]
+    def _check_current(self, column):
 
-    def check_current(self, column):
+        """
+        Used to check if the self.current database contains any entries, if the length is 0
+        self.current will be reset to zero and a error is raised
+        A column value is asked so that correct inputs can be printed
+        Args:
+            column: column name or error handling
+        """
+
         if len(self.current) == 0:
             self.current = None
 

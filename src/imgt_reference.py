@@ -64,7 +64,10 @@ def create_genes(raw_file):
         seq = ''.join(gene_seq[1:]).upper()
 
         acc_no = attributes[0]
-        allele = attributes[1]
+        temp = attributes[1].split('*')
+        allele = temp[0]
+        sub = temp[1]
+
 
         species_full = attributes[2].split('_')
         species = species_full[0]
@@ -115,7 +118,7 @@ def create_genes(raw_file):
         protein_seq = translate(seq, start_codon)
         cdr3 = ''
         # combine into a dictionary
-        attribute_list = {'acc_no': acc_no, 'allele': allele, 'species': species,
+        attribute_list = {'acc_no': acc_no, 'allele': allele, 'sub': sub,'species': species,
                           'variety': variety,
                           'functional': functional, 'exon_name': exon_name, 'start': start,
                           'end': end, 'length': length, 'start_codon': start_codon,
