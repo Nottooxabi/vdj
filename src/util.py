@@ -28,7 +28,7 @@ def reverse_complement(seq: str):
     return ''.join(complement_sequence[::-1])
 
 
-def translate(seq: str, frame: int = 1, debug = False):
+def translate(seq: str, frame: int = 1, debug = False, hasGaps = False):
     """
     Translation of a DNA sequence into a Amino Acid Sequence
 
@@ -44,6 +44,9 @@ def translate(seq: str, frame: int = 1, debug = False):
 
     # prevents errors associated by frame value being either negative or a float
     frame = round(abs(frame))
+
+    if hasGaps:
+        seq = seq.replace('.', '')
 
     # prevents errors caused by incorrect case and whitespace
     seq = seq.upper().replace(' ', '')

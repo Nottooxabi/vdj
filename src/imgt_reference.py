@@ -4,9 +4,9 @@ from src.util import translate
 
 def get_imgt_references(file_name='imgt_ref.fasta',
                         url='http://www.imgt.org/download/GENE-DB/IMGTGENEDB-ReferenceSequences'
-                            '.fasta-nt-WithoutGaps-F+ORF+inframeP'):
+                            '.fasta-nt-WithGaps-F+ORF+inframeP'):
     """
-    pulls all records from imgt databse
+    pulls all records from imgt database
     Args:
         file_name: filename of a textfile to store data
         url: imgt database url
@@ -68,7 +68,6 @@ def create_genes(raw_file):
         allele = temp[0]
         sub = temp[1]
 
-
         species_full = attributes[2].split('_')
         species = species_full[0]
         try:
@@ -115,20 +114,57 @@ def create_genes(raw_file):
 
         chain = allele[2]
         segment = allele[3]
-        protein_seq = translate(seq, start_codon)
-        cdr3 = ''
+
+        protein_seq = translate(seq, start_codon, hasGaps=True)
+
+        fr1, cdr1, fr2, cdr2, fr3, cdr3, fr4 = get_v_domain_coordinates(seq, start_codon, segment)
+
         # combine into a dictionary
-        attribute_list = {'acc_no': acc_no, 'allele': allele, 'sub': sub,'species': species,
-                          'variety': variety,
-                          'functional': functional, 'exon_name': exon_name, 'start': start,
-                          'end': end, 'length': length, 'start_codon': start_codon,
+        attribute_list = {'acc_no': acc_no, 'allele': allele, 'sub': sub, 'species': species,
+                          'variety': variety, 'functional': functional, 'exon_name': exon_name,
+                          'start': start, 'end': end, 'length': length, 'start_codon': start_codon,
                           'v1': v1, 'v2': v2, 'v3': v3, 'aa_length': aa_length,
                           'seq_length': seq_length, 'partial': partial, 'rev_comp': rev_comp,
-                          'seq': seq,
-                          'protein_seq': protein_seq, 'segment': segment, 'chain': chain,
-                          'cdr3': cdr3}
+                          'seq': seq, 'protein_seq': protein_seq, 'segment': segment, 'chain': chain,
+                          'fr1': fr1, 'cdr1': cdr1, 'fr2': fr2, 'cdr2': cdr2, 'fr3': fr3,
+                          'cdr3': cdr3, 'fr4': fr4}
 
         # Create a tuple which contains list of attributes for each gene and a string for gene sequence
         gene = attribute_list
         all_genes.append(gene)
     return all_genes
+
+
+def get_v_domain_coordinates(seq: str, frame: int, segment: str):
+    """
+    Separates a sequence into specific
+    Args:
+        seq:
+        frame:
+        segment:
+
+    Returns:
+
+    """
+
+    temp_seq = seq[frame - 1:]
+    temp = [temp_seq[i: i + 3] for i in range(0, len(temp_seq), 3)]
+
+    if segment == 'V':
+        fr1 = ''.join(temp[0:26])
+        cdr1 = ''.join(temp[26:38])
+        fr2 = ''.join(temp[38:55])
+        cdr2 = ''.join(temp[55:65])
+        fr3 = ''.join(temp[65:104])
+        cdr3 = ''.join(temp[104:])
+        fr4 = ''
+        return fr1, cdr1, fr2, cdr2, fr3, cdr3, fr4
+    elif segment == 'J':
+
+        fr4 = ''.join(temp[-11:])
+        cdr3 = temp_seq[0:frame - 1] + ''.join(temp[:-11])
+
+        return '', '', '', '', '', cdr3, fr4
+
+    else:
+        return '', '', '', '', '', '', ''
