@@ -1,8 +1,10 @@
 from src import util
 from skbio.alignment import StripedSmithWaterman
-from skbio.alignment import local_pairwise_align_ssw
+from skbio.alignment import local_pairwise_align_ssw, global_pairwise_align_nucleotide
 from skbio.sequence import DNA
 from src.exceptions import FrameshiftException, InternalStopCodonException
+
+import pyopa
 
 """
 Identifies correct gene usage for inputted sequences
@@ -20,15 +22,14 @@ def new_align(seq: str, ref: dict):
         Allele with the best alignment
     """
 
-    query = StripedSmithWaterman(seq)
+    data = {'gap_open': -20, 'gap_ext': -3, 'pam_distance': 150, }
 
     best = ''
     score = 0
+
+    seq = pyopa.Sequence(seq)
     for k, v in ref.items():
-        alignment = query(v)
-        if score < alignment.optimal_alignment_score:
-            score = alignment.optimal_alignment_score
-            best = k
+        alignment = global_pairwise_align_nucleotide(DNA(seq.replace('N', '')), DNA(v))
 
     return best
 

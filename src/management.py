@@ -104,6 +104,33 @@ class ReferenceManager:
                                  " value does not exist \n Only the following inputs are valid: \n" +
                                  str(possible))
 
+    def to_align(self, chain: list, segment: list, regions: list):
+
+        """
+        Pull all sequences to align against and which regions to use for alignment
+        Args:
+            chain: list of A, B, G, D
+            segment: list containing V, D or J
+            regions: lis of FR and CDR regions
+
+        Returns: dict of a dict
+        """
+        accepted = set(['fr1', 'cdr1', 'fr2', 'cdr2', 'fr3', 'cdr3', 'fr4'])
+
+        temp_df = self.current[(self.current['chain'].isin(chain)) &
+                               (self.current['segment'].isin(segment))]
+
+        to_align = {region:{} for region in regions}
+        for index, row in temp_df.iterrows():
+            for region in regions:
+                if region in accepted:
+                    gene = row.allele
+                    to_align[region][gene] = row[region].replace('.', '')
+                else:
+                    continue
+        return to_align
+
+
     def get_chain_sequences(self, usage):
         v = usage[0]
         j = usage[1]
