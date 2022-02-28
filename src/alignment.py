@@ -1,37 +1,36 @@
+from Bio.pairwise2 import format_alignment
+
 from src import util
 from skbio.alignment import StripedSmithWaterman
 from skbio.alignment import local_pairwise_align_ssw, global_pairwise_align_nucleotide
 from skbio.sequence import DNA
 from src.exceptions import FrameshiftException, InternalStopCodonException
-
-import pyopa
+from Bio import pairwise2
 
 """
 Identifies correct gene usage for inputted sequences
 """
 
 
-def new_align(seq: str, ref: dict):
-    """
-    Align sequences using a optimised striped Smith Waterman algorithm
-    Args:
-        seq: user inputted sequence to align against reference
-        ref: dictionary of sequences
+def align(query: str, ref: dict, debug: bool=False):
+    best_gene = ''
+    best_score = 0
+    for gene, seq in ref.items():
+        # Severe penalty for gap opens and mismatches
+        alignment_score = pairwise2.align.localms(query, seq, match=2, mismatch=-10, open=-20, extend=-0.1,
+                                                  one_alignment_only=True, score_only=True)
 
-    Returns:
-        Allele with the best alignment
-    """
+        if alignment_score > best_score:
+            best_gene = gene
+            best_score = alignment_score
 
-    data = {'gap_open': -20, 'gap_ext': -3, 'pam_distance': 150, }
+            if debug:
+                for a in  pairwise2.align.localms(query, seq, match=2, mismatch=-10, open=-20, extend=-0.1,
+                                                      one_alignment_only=True):
+                    print(gene)
+                    print(format_alignment(*a))
 
-    best = ''
-    score = 0
-
-    seq = pyopa.Sequence(seq)
-    for k, v in ref.items():
-        alignment = global_pairwise_align_nucleotide(DNA(seq.replace('N', '')), DNA(v))
-
-    return best
+    return best_gene
 
 
 def define_cdr3(seq: str, v: str, j: str):

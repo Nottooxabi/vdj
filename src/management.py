@@ -7,6 +7,7 @@ import pickle
 import os
 from src.util import translate
 import src.imgt_reference as ref
+from src.exceptions import InvalidEntryException
 
 
 def load_data():
@@ -104,30 +105,45 @@ class ReferenceManager:
                                  " value does not exist \n Only the following inputs are valid: \n" +
                                  str(possible))
 
-    def to_align(self, chain: list, segment: list, regions: list):
+    def to_align(self, chain: list, segment: list, regions: str):
 
         """
         Pull all sequences to align against and which regions to use for alignment
         Args:
             chain: list of A, B, G, D
             segment: list containing V, D or J
-            regions: lis of FR and CDR regions
+            regions: str which indicates which regions to align against
 
         Returns: dict of a dict
         """
-        accepted = set(['fr1', 'cdr1', 'fr2', 'cdr2', 'fr3', 'cdr3', 'fr4'])
+
+        # Set contains all possible iterations of fr and cdr sections which can be used, combinations of sections are
+        # formed by csv format
+
+        accepted = set(['fr1', 'cdr1', 'fr2', 'cdr2', 'fr3', 'cdr3', 'fr4',
+                        'fr1,cdr1', 'cdr1,fr2', 'fr2,cdr2', 'cdr2,fr3', 'fr3,cdr3', 'cdr3,fr4',
+                        'fr1,cdr1,fr2', 'cdr1,fr2,cdr2', 'fr2,cdr2,fr3', 'cdr2,fr3,cdr3', 'fr3,cdr3,fr4',
+                        'fr1,cdr1,fr2,cdr2', 'cdr1,fr2,cdr2,fr3', 'fr2,cdr2,fr3,cdr3', 'cdr2,fr3,cdr3,fr4',
+                        'fr1,cdr1,fr2,cdr2,fr3', 'cdr1,fr2,cdr2,fr3,cdr3', 'fr2,cdr2,fr3,cdr3,fr4'
+                        'fr1,cdr1,fr2,cdr2,fr3,cdr3', 'cdr1,fr2,cdr2,fr3,cdr3,fr4'
+                        'fr1,cdr1,fr2,cdr2,fr3,cdr3,fr4'])
+
+        if regions not in accepted:
+            raise InvalidEntryException
 
         temp_df = self.current[(self.current['chain'].isin(chain)) &
                                (self.current['segment'].isin(segment))]
 
-        to_align = {region:{} for region in regions}
+        regions = regions.split(',')
+        to_align = {}
         for index, row in temp_df.iterrows():
+            comb = ''
+            gene = row.allele
+
             for region in regions:
-                if region in accepted:
-                    gene = row.allele
-                    to_align[region][gene] = row[region].replace('.', '')
-                else:
-                    continue
+                comb = comb + row[region].replace('.', '')
+            to_align[gene] = comb
+
         return to_align
 
 

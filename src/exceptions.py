@@ -8,3 +8,6 @@ class FrameshiftException(Error):
 
 class InternalStopCodonException(Error):
     pass
+
+class InvalidEntryException(Error):
+    pass
