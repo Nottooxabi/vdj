@@ -146,6 +146,14 @@ class ReferenceManager:
         return to_align
 
     def get_chain_sequences(self, usage):
+        """
+        Get cdr3 sequence from inputted V and J genes
+        Args:
+            usage: list or tuple of two elements the first being the V gene and second being a J gene
+
+        Returns: tuple of (v, j) sequences
+
+        """
         v = usage[0]
         j = usage[1]
 

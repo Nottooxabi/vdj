@@ -122,7 +122,7 @@ class UserSequences:
             return {}
         return references
 
-    def align_sequence(self, seq, chain, for_v='fr3,cdr3', for_j='cdr3,fr4'):
+    def _get_usage(self, seq, chain, for_v='fr3,cdr3', for_j='cdr3,fr4'):
 
         """
         Aligns a tcr chain against references and finds best alleles for each sequence
@@ -140,13 +140,23 @@ class UserSequences:
 
         return {'v': alignment.align(seq, v_ref), 'j': alignment.align(seq, j_ref)}
 
+    def _get_cdr3(self, seq: str, usage: dict):
+        """
+        Finds cdr3 sequences based on defined usages
+        Args:
+            seq:
+            usage:
+
+        Returns:
+        """
+
     def set_all_usage(self, chain):
         """
         Runs set_usage_information method for each sequence
 
         Args:
             chain: sequence chain
-
+a
         Returns: Nothing
 
         """
