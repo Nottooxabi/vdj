@@ -42,7 +42,7 @@ class ReferenceManager:
                     variety: list = None,
                     segment: list = None,
                     chain: list = None,
-                    allele: list =['01']):
+                    allele: list = ['01']):
         """
         Sets the current dataframe which will be used for sequence alignments, requires both a valid
         species entry to work
@@ -120,13 +120,12 @@ class ReferenceManager:
         # Set contains all possible iterations of fr and cdr sections which can be used, combinations of sections are
         # formed by csv format
 
-        accepted = set(['fr1', 'cdr1', 'fr2', 'cdr2', 'fr3', 'cdr3', 'fr4',
-                        'fr1,cdr1', 'cdr1,fr2', 'fr2,cdr2', 'cdr2,fr3', 'fr3,cdr3', 'cdr3,fr4',
-                        'fr1,cdr1,fr2', 'cdr1,fr2,cdr2', 'fr2,cdr2,fr3', 'cdr2,fr3,cdr3', 'fr3,cdr3,fr4',
-                        'fr1,cdr1,fr2,cdr2', 'cdr1,fr2,cdr2,fr3', 'fr2,cdr2,fr3,cdr3', 'cdr2,fr3,cdr3,fr4',
-                        'fr1,cdr1,fr2,cdr2,fr3', 'cdr1,fr2,cdr2,fr3,cdr3', 'fr2,cdr2,fr3,cdr3,fr4'
-                        'fr1,cdr1,fr2,cdr2,fr3,cdr3', 'cdr1,fr2,cdr2,fr3,cdr3,fr4'
-                        'fr1,cdr1,fr2,cdr2,fr3,cdr3,fr4'])
+        accepted = {'fr1', 'cdr1', 'fr2', 'cdr2', 'fr3', 'cdr3', 'fr4', 'fr1,cdr1', 'cdr1,fr2', 'fr2,cdr2', 'cdr2,fr3',
+                    'fr3,cdr3', 'cdr3,fr4', 'fr1,cdr1,fr2', 'cdr1,fr2,cdr2', 'fr2,cdr2,fr3', 'cdr2,fr3,cdr3',
+                    'fr3,cdr3,fr4', 'fr1,cdr1,fr2,cdr2', 'cdr1,fr2,cdr2,fr3', 'fr2,cdr2,fr3,cdr3', 'cdr2,fr3,cdr3,fr4',
+                    'fr1,cdr1,fr2,cdr2,fr3', 'cdr1,fr2,cdr2,fr3,cdr3', 'fr2,cdr2,fr3,cdr3,fr4',
+                    'fr1,cdr1,fr2,cdr2,fr3,cdr3', 'cdr1,fr2,cdr2,fr3,cdr3,fr4',
+                    'fr1,cdr1,fr2,cdr2,fr3,cdr3,fr4'}
 
         if regions not in accepted:
             raise InvalidEntryException
@@ -145,7 +144,6 @@ class ReferenceManager:
             to_align[gene] = comb
 
         return to_align
-
 
     def get_chain_sequences(self, usage):
         v = usage[0]

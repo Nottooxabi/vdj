@@ -8,9 +8,8 @@ Currently, the following formats can be parsed: ab1, fasta and mixcr
 import os
 import pandas as pd
 
-from src import ab1_util, management, util
-from vj_finder import exceptions
-
+from src import ab1_util, management, util, alignment
+from src import exceptions
 
 
 def get_files(path=None):
@@ -69,6 +68,7 @@ def read_file(file_type: str, file_name: str):
     else:
         raise ValueError("Invalid file type")
 
+
 class UserSequences:
     """
     User inputted ab1 files are parsed and stored in this object
@@ -101,11 +101,10 @@ class UserSequences:
         """
         self.references.set_species(species=self.species, variety=self.variety, isTCR=self.is_tcr)
 
-    def get_targets(self, chain: str, segment: str, locations: list):
+    def get_targets(self, chain: str, segment: str, locations: str):
 
         """
         Returns a list of targets for which each user sequence will be aligned against can be more than one section
-        TODO: allow for FR1-4 and combinations of FR and CDR
         Args:
             chain:
             segment:
@@ -115,68 +114,31 @@ class UserSequences:
 
         """
 
-        allowed = set(['cdr1', 'cdr2', 'cdr3'])
-
         references = []
 
-        for location in locations:
-            if location in allowed:
-                references.append(self.references.get_reference_sequences(chain=chain,
-                                                                          segment=segment,
-                                                                          cdr=location))
-            else:
-                print(allowed)
-                continue
-
+        try:
+            references = self.references.to_align(chain, segment, locations)
+        except exceptions.InvalidEntryException:
+            return {}
         return references
 
-    def align_sequence(self, seq, chain, cdr=['cdr1', 'cdr2', 'cdr3']):
+    def align_sequence(self, seq, chain, for_v='fr3,cdr3', for_j='cdr3,fr4'):
 
         """
-        Aligns a tcr chain against references and finds best matching sequence and cdr3
+        Aligns a tcr chain against references and finds best alleles for each sequence
         Args:
-            cdr: which regions to align against
-            chain: TCR chain
-
+            seq: query sequence which references will be aligned against
+            chain: TCR chain A, B ,G ,D
+            for_v: which v segments will be used for references
+            for_j:
         Returns: list containing best vj pairing
 
         """
-        error = False
 
-        v_ref = self.get_targets(chain=chain, segment='V', locations=cdr)
-        best_v = set()
-        if len(v_ref) == 0:
-            return 0
+        v_ref = self.get_targets(chain=chain, segment='V', locations=for_v)
+        j_ref = self.get_targets(chain, segment='J', locations=for_j)
 
-        for ref in v_ref:
-            best_v.add(vj.find_best_allele(seq, ref))
-
-        # TODO: Solve issue if more than one v is found when multiple locations are used for
-        #  determination of allele
-        best_v = best_v.pop()
-
-        j_ref = self.get_targets(chain=chain, segment='J', locations=['cdr3'])
-        best_j = vj.find_best_allele(seq, j_ref[0])
-
-        try:
-            v = self.references.current[self.references.current['allele'] == best_v].iloc[0]['cdr3']
-            j = self.references.current[self.references.current['allele'] == best_j].iloc[0]['cdr3']
-            cdr3 = vj.define_cdr3(seq, v, j)
-        except exceptions.FrameshiftException:
-            cdr3 = 'Frameshift'
-            error = True
-        except exceptions.InternalStopCodonException:
-            cdr3 = 'Stop Codon'
-            error = True
-        except ValueError:
-            cdr3 = '?'
-            error = True
-
-        return {'Variable': best_v,
-                'Joining': best_j,
-                'nuc_cdr3': cdr3,
-                'prot_cdr3': util.translate(cdr3),
-                'errors': error}
+        return {'v': alignment.align(seq, v_ref), 'j': alignment.align(seq, j_ref)}
 
     def set_all_usage(self, chain):
         """

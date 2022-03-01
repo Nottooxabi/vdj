@@ -55,11 +55,11 @@ def define_cdr3(seq: str, v: str, j: str):
     # Translate full CDR3 for stop codons
     # minus start of v with start of j, the results should be divisible with 3
 
-    cdr3 = seq[start - 3:end + 1]
+    cdr3 = seq[start - 3:end + 4]
 
-    if '_' in util.translate(cdr3):
-        raise InternalStopCodonException
+    #if '_' in util.translate(cdr3):
+        #raise InternalStopCodonException
 
-    if len(cdr3) % 3 != 0:
-        raise FrameshiftException
+    #if len(cdr3) % 3 != 0:
+        #raise FrameshiftException
     return cdr3
