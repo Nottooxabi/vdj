@@ -21,7 +21,9 @@ if __name__ == '__main__':
 
     data.read_files()
 
-    df = data.to_table()
+    df = data._pair_chains('data/RS_54','data/RS_55', ('_g', '_d'))
+    clones = df.groupby(['cdr3_g', 'cdr3_d']).size().reset_index()
+
     df.to_csv('temp.csv')
 
     pass

@@ -184,43 +184,39 @@ class UserSequences:
         """
         return self.__read_sequences
 
-    def to_table(self):
+    def _to_table(self):
+        """
+        Converts data into a pandas dataframe
+        Returns:
+
+        """
+
         return pd.DataFrame(self.__processed_files)
 
-    def get_clones(self, chain_1: list, chain_2: list):
+    def _pair_chains(self, plate_1: str, plate_2: str, plate_suffices: tuple):
 
         """
-        Pairs two chains from the same cell together
-        Requires both lists to be of the same length
+        Pairs two chains together with
+        This requires two 'plates' with paired TCRs having the same sample name
 
         Args:
-            chain_1: list containing directories for one chain
-            chain_2: list containing directories to corresponding chain
+            plate_1: list containing directories for one chain
+            plate_2: list containing directories to corresponding chain
+            plate_suffices: suffices used for column names
+
         """
 
-        if len(chain_1) != len(chain_2):
-            raise IndexError('equal number of inputs required')
+        if len(self.__processed_files['plate']) == 0:
+            raise ValueError("no plates have beeen processed yet")
 
-        # Current implementation has no error handling
-        # Poor inputs will result is incorrect pairings
-        dataframe = pd.DataFrame.from_records(self.__read_sequences)
+        df = self._to_table()
 
-        for i in range(len(chain_1)):
-            c_1 = chain_1[i]
-            c_2 = chain_2[i]
+        samples_1 = df[df['plate'] == plate_1]
+        samples_2 = df[df['plate'] == plate_2]
 
-            df_c1 = dataframe[dataframe['directory'] == c_1]
-            df_c2 = dataframe[dataframe['directory'] == c_2]
+        return pd.merge(samples_1, samples_2, on='sample', suffixes=plate_suffices)
 
-            df_c1 = df_c1[
-                'seq_id', 'coordinate', 'chain', 'directory',
-                'v_gene', 'j_gene', 'cdr3_seq', 'cdr_aa', 'errors']
 
-            df_c2 = df_c2[
-                'seq_id', 'coordinate', 'chain', 'directory',
-                'v_gene', 'j_gene', 'cdr3_seq', 'cdr_aa', 'errors']
-
-        return dataframe.groupby(['cdr3_seq', 'v_gene', 'j_gene'])
 
     def convert_to_csv(self):
         """
