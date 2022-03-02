@@ -12,71 +12,13 @@ from src import ab1_util, management, util, alignment
 from src import exceptions
 
 
-def get_files(path=None):
-    """
-    Pulls relevant ab1 files from selected path
-
-    Args:
-        path: Optional, path to input files
-
-    Returns:
-        Dictionary with ab1 path string in the following format:
-        {'Directory': ['Directory/file.ab1']}
-
-    """
-
-    files_in_data = os.listdir('Data')
-    all_files = {}
-    for file in files_in_data:
-        path = 'Data/' + file
-        try:
-            files_in_path = os.listdir(path)
-        except NotADirectoryError:
-            pass
-        accepted_files = []
-        for i in files_in_path:
-            try:
-                extension = i.split('.')
-                if extension[1] == 'ab1':
-                    accepted_files.append(i)
-            except IndexError:
-                pass
-
-        all_files[path] = accepted_files
-
-    return all_files
-
-
-def read_file(file_type: str, file_name: str):
-    """
-    Reads specified type of sequence file and appends file into read_sequences list
-    Args:
-        file_type: file extension type for example (fasta)
-        file_name: path to file
-    Returns:
-    Sequence from file
-    """
-
-    if file_type == 'ab1':
-        try:
-            sequence = reader.read_ab1_file(file_name, handle_n=True, reverse_transcribe=True)
-            return sequence
-        except OSError:
-            return "Needs new solution"
-    elif file_name == 'fasta':
-        return "Not implemented"
-    else:
-        raise ValueError("Invalid file type")
-
-
 class UserSequences:
     """
     User inputted ab1 files are parsed and stored in this object
     Is paired with a reference class which stores reference sequecnes
 
     Attributes:
-    __read_sequences -> list of sequences which have read and aligned against reference
-    references -> reference object
+    __read_sequences -> list of sequences which have read and aligned against reference -> reference object
     isTCR -> boolean indicating is supplied files contain TCR sequences or not
     species -> which species
     """
@@ -86,11 +28,15 @@ class UserSequences:
                  is_tcr: bool = True,
                  species: str = '',
                  variety: str = ''):
-        self.__read_sequences = []
+
         self.references = references
         self.is_tcr = is_tcr
         self.species = species
         self.variety = variety
+        self.__processed_files = {'plate': [],'sample': [], 'sequence': [], 'V': [], 'J': [], 'cdr3': [], 'cdr3_protein': [],
+                                  'errors': []}
+        self.__read_sequences = {}
+        self.__meta = None
 
     def set_references(self):
         """
@@ -101,28 +47,113 @@ class UserSequences:
         """
         self.references.set_species(species=self.species, variety=self.variety, isTCR=self.is_tcr)
 
-    def get_targets(self, chain: str, segment: str, locations: str):
+    def set_files(self, path):
+        """
+        Pulls relevant ab1 files from selected path
+
+        Args:
+            path: path to input files
+
+        Returns:
+            Dictionary with ab1 path string in the following format:
+            {'Directory': ['Directory/file.ab1']}
+
+        """
+
+        directories = os.listdir(path)
+
+        invalid_files = []
+        valid = {}
+        for directory in directories:
+
+            temp_path = path + directory
+            try:
+                valid[temp_path] = os.listdir(temp_path)
+            except NotADirectoryError:
+                if '.ab1' in directory:
+                    invalid_files.append(directory)
+
+        if len(invalid_files) != 0:
+            print('Following files were not read, please place into directory: ' + '. '.join(invalid_files))
+
+        self.__read_sequences = valid
+
+        print(self.__read_sequences.keys())
+
+    def set_meta_data(self, meta: dict):
+        """
+        Specify meta data for each set of sequences such as chain etc. as a list
+        some meta info can be used to find
+        Args:
+            meta: key is path to file, needs to be the same as keys from self.__read_sequences, values are a dictionary
+            each dictionary must contain the key (chain) specifying the tcr chain of the files
+            in addition isReverse needed for reverse sequenmces
+
+        Returns:
+
+        """
+        self.__meta = None
+
+        if self.__read_sequences is None:
+            print('no sequence files found')
+            return
+        if meta.keys() != self.__read_sequences.keys():
+            print('meta keys dont match read sequence keys')
+            return
+
+        for k, v in meta.items():
+            if 'chain' not in v:
+                print('all meta entries requires {\'chain\': value}')
+                return
+
+            if 'isReverse' not in v:
+                meta['isReverse'] = False
+
+        self.__meta = meta
+
+    def read_files(self, v_loc='fr3,cdr3', j_loc='cdr3,fr4'):
+
+        if self.__meta is None:
+            raise ValueError('No meta data found')
+
+        for key, value in self.__meta.items():
+            v_ref = self._get_targets(chain=value['chain'], segment=['V'], locations=v_loc)
+            j_ref = self._get_targets(chain=value['chain'], segment=['J'], locations=j_loc)
+
+            for entry in self.__read_sequences[key]:
+                self.__processed_files['plate'].append(key)
+                self.__processed_files['sample'].append(entry)
+                path = key + '/' + entry
+                try:
+                    seq = ab1_util.read_ab1_file(path, handle_n=True, reverse_transcribe=value['isReverse'])
+                    self.__processed_files['sequence'].append(seq['sequence'])
+                    temp = self._get_usages(seq['sequence'], v_ref, j_ref)
+                    for k, v in temp.items():
+                        self.__processed_files[k].append(v)
+
+                except FileNotFoundError:
+                    print('file not found: ' + path)
+
+    # TODO: Needed?
+    def _get_targets(self, chain: list, segment: str, locations: str):
 
         """
         Returns a list of targets for which each user sequence will be aligned against can be more than one section
         Args:
             chain:
             segment:
-            locations:
 
         Returns:
 
         """
 
-        references = []
-
         try:
-            references = self.references.to_align(chain, segment, locations)
+            references = self.references.to_align([chain], segment, locations)
         except exceptions.InvalidEntryException:
             return {}
         return references
 
-    def _get_usage(self, seq, chain, for_v='fr3,cdr3', for_j='cdr3,fr4'):
+    def _get_usages(self, seq, for_v, for_j):
 
         """
         Aligns a tcr chain against references and finds best alleles for each sequence
@@ -135,60 +166,15 @@ class UserSequences:
 
         """
 
-        v_ref = self.get_targets(chain=chain, segment='V', locations=for_v)
-        j_ref = self.get_targets(chain, segment='J', locations=for_j)
+        data = {'V': alignment.align(seq, for_v), 'J': alignment.align(seq, for_j)}
+        usage = self.references.get_chain_sequences(data.values())
+        cdr3, errors = alignment.define_cdr3(seq, usage[0], usage[1])
 
-        return {'v': alignment.align(seq, v_ref), 'j': alignment.align(seq, j_ref)}
+        data['cdr3'] = cdr3
+        data['cdr3_protein'] = util.translate(cdr3)
+        data['errors'] = errors
 
-    def _get_cdr3(self, seq: str, usage: dict):
-        """
-        Finds cdr3 sequences based on defined usages
-        Args:
-            seq:
-            usage:
-
-        Returns:
-        """
-
-    def set_all_usage(self, chain):
-        """
-        Runs set_usage_information method for each sequence
-
-        Args:
-            chain: sequence chain
-a
-        Returns: Nothing
-
-        """
-
-        for i in self.__read_sequences:
-            print(i)
-            print(self.align_sequence(i['sequence'], chain))
-
-    # TODO improve this function to allow custom directories
-    def read_all_files(self):
-        """
-        Real each file based on files in directory
-
-        Returns: Nothing
-
-        """
-        directory = get_files()
-        root = os.getcwd()
-
-        for path, names in directory.items():
-            try:
-                os.chdir(path)
-                for j in names:
-                    sequence = read_file(file_type='ab1', file_name=j)
-                    if sequence is not None:
-                        sequence['directory'] = path.split('/')[-1]
-                        sequence['coordinate'] = sequence['seq_id'][0:2]
-                        self.__read_sequences.append(sequence)
-                os.chdir(root)
-
-            except NotADirectoryError:
-                pass
+        return data
 
     def get_seq(self):
         """
@@ -197,6 +183,9 @@ a
 
         """
         return self.__read_sequences
+
+    def to_table(self):
+        return pd.DataFrame(self.__processed_files)
 
     def get_clones(self, chain_1: list, chain_2: list):
 
@@ -258,3 +247,27 @@ a
                 error.append(i)
                 break
         self.__read_sequences = error
+
+
+def read_file(file_type: str, file_name: str):
+    """
+    Reads specified type of sequence file and appends file into read_sequences list
+    Args:
+        file_type: file extension type for example (fasta)
+        file_name: path to file
+    Returns:
+    Sequence from file
+    """
+
+    if file_type == 'ab1':
+        try:
+            sequence = ab1_util.read_ab1_file(file_name, handle_n=True, reverse_transcribe=True)
+            return sequence
+        except OSError:
+            return "Needs new solution"
+    elif file_name == 'fasta':
+        return "Not implemented"
+    else:
+        raise ValueError("Invalid file type")
+
+

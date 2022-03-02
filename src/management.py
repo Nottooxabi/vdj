@@ -154,6 +154,7 @@ class ReferenceManager:
         Returns: tuple of (v, j) sequences
 
         """
+        usage = list(usage)
         v = usage[0]
         j = usage[1]
 

@@ -1,29 +1,27 @@
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
 
-from src import ab1_util, imgt_reference, management, alignment, util
+from src import ab1_util, imgt_reference, management, alignment, util, user
 import os
+import pandas as pd
 
 if __name__ == '__main__':
     # This needs to be done once
     # imgt_reference.get_imgt_references('references/imgt_ref.fasta')
 
     ref = management.ReferenceManager('references/imgt_ref.fasta')
-    ref.set_current(species='Homo sapiens', segment=['V', 'J'])
+    ref.set_current(species='Mus musculus', segment=['V', 'J'], chain=['G', 'D'])
 
-    x = ref.get_chain_sequences(['TRAV1-2', 'TRAJ33'])
+    data = user.UserSequences(ref, species='Mus musculus')
+    data.set_files('data/')
+    meta = {'data/RS_54': {'chain': 'G', 'isReverse': True},
+            'data/RS_55': {'chain': 'D', 'isReverse': True}}
 
-    #test = 'TCCTGCAGCCAGAAGACTCGGCCCTGTATCTCTGCGCCAGCAGCCAAGAAGGGTCGGACCTCGTACTTCGCGAGCAGTACTTCGGGCCGGGCACCAGGCTCACGGTCACAGAGGACNNNNAANNNNNNNNNNNNNN'
-    #x = ref.to_align(chain=['B'], segment=['V'], regions='fr3,cdr3')
-    #v = alignment.align(test, x)
+    data.set_meta_data(meta)
 
-    #x = ref.to_align(chain=['B'], segment=['J'], regions='cdr3,fr4')
-    #j = alignment.align(test, x)
+    data.read_files()
 
+    df = data.to_table()
+    df.to_csv('temp.csv')
 
-    #get_cdr3
-    #x = ref.to_align(chain=['B'], segment=['V', 'J'], regions='cdr3')
-
-    #z = alignment.define_cdr3(test, x[v], x[j])
-    #print(util.translate(z))
-    #pass
+    pass
